@@ -1,0 +1,8 @@
+---
+welcome: "Welcome to Mortgage Calculator!"
+loan_amount: "Please enter your loan amount in dollars: "
+APR: "Please enter your annual percentage rate in percent (e.g. 2.33): "
+years: "Please enter the duration of your loan in years: "
+invalid: "Invalid input, please try again"
+again?: "Do you want to perform another calculation? (Y to caculate again)"
+goodbye: "Thank you for using the Mortgage Calculator. Goodbye!"
