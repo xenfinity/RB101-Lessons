@@ -11,8 +11,9 @@ def valid_number?(input)
   input.to_i.to_s == input || input.to_f.to_s == input
 end
 
-prompt(MESSAGES['welcome'])
 loan_amount, apr, years = nil
+prompt(MESSAGES['welcome'])
+
 loop do
   loop do
     prompt(MESSAGES['loan_amount'])
