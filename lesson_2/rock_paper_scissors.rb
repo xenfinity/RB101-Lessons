@@ -1,4 +1,5 @@
 require 'yaml'
+require 'pry'
 
 MESSAGES = YAML.load_file('rps_messages.yml')
 CHOICES = {
@@ -29,13 +30,18 @@ end
 def display_winner(player, computer)
   prompt("You chose: #{CHOICES[player]}, Computer chose: #{CHOICES[computer]}")
 
+  player_wins = if WINNER[[player, computer]].nil?
+                  !WINNER[[computer, player]]
+                else
+                  WINNER[[player, computer]]
+                end
+
   if player == computer
     prompt(MESSAGES['draw'])
-  elsif WINNER[[player, computer]].nil? &&
-        WINNER[[computer, player]]
-    prompt(MESSAGES['comp_win'])
-  else
+  elsif player_wins
     prompt(MESSAGES['player_win'])
+  else
+    prompt(MESSAGES['comp_win'])
   end
 end
 
@@ -74,11 +80,12 @@ loop do
   next if choice == comp_choice
 
   # Increment winner's score if it wasn't a draw
-  if WINNER[[choice, comp_choice]].nil? &&
-     WINNER[[comp_choice, choice]]
-    comp_score += 1
-  else
+  if WINNER[[choice, comp_choice]]
     player_score += 1
+  elsif WINNER[[comp_choice, choice]].nil?
+    WINNER[[comp_choice, choice]] ? comp_score += 1 : player_score += 1
+  else
+    comp_score += 1
   end
 
   # Display running scoreboard
