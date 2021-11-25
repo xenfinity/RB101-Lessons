@@ -1,9 +1,9 @@
 ---
-welcome: "Welcome to Rock Paper Scissors!"
-choice: "Please make a choice - 1)Rock 2)Paper 3)Scissors (q to quit): "
+welcome: "Welcome to Rock Paper Scissors Lizard Spock!"
+choice: "Please make a choice - 1)Rock 2)Paper 3)Scissors 4)Lizard 5)Spock(q to quit): "
 invalid: "Invalid input, please input 1, 2, or 3"
 again?: "Would you like to play again? (Y/N): "
 player_win: "You win! Congratulations :)"
 comp_win: "You lost, better luck next time :("
 draw: "Draw!"
-goodbye: "Thank you for playing Rock Paper Scissors. Goodbye!"
+goodbye: "Thank you for playing Rock Paper Scissors Lizard Spock. Goodbye!"
