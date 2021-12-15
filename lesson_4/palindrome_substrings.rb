@@ -16,10 +16,15 @@
 =end
 
 def palindrome_substrings(string)
-  words = Array.new
-  2.upto(string.size-1) { |i| words.concat(string.chars.each_cons(i).to_a) }
-  result = words.filter { |word| word.reverse == word }
-  result.sort.map(&:join)
+  substrings = Array.new
+
+  2.upto(string.size-1) do |i| 
+    sub_of_i = string.chars.each_cons(i).to_a
+    substrings.concat(sub_of_i)
+  end
+
+  substrings.select! { |word| word.reverse == word }
+  substrings.sort.map(&:join)
 end
 
 
