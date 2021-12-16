@@ -1,7 +1,7 @@
 EMPTY = ' '
 FIRST = 'X'
 SECOND = 'O'
-CORNERS = [1,3,7,9]
+CORNERS = [1, 3, 7, 9]
 CENTER = 5
 
 WIN_STATES = [[1, 2, 3], [4, 5, 6], [7, 8, 9],
@@ -13,8 +13,8 @@ def prompt(message)
 end
 
 def joinor(choices, delim=', ', tail='or')
-  choices[0...-1].join(delim) + 
-    ' ' + tail + ' ' + 
+  choices[0...-1].join(delim) +
+    ' ' + tail + ' ' +
     choices[-1].to_s
 end
 
@@ -34,8 +34,8 @@ end
 
 def initialize_board(map=false)
   board = Hash.new
-  1.upto(9) do |i| 
-    map ? board[i] = i : board[i] = EMPTY     
+  1.upto(9) do |i|
+    board[i] = map ? i : EMPTY     
   end
   board
 end
@@ -61,7 +61,7 @@ def winner?(board)
     winner = SECOND if state.all?(SECOND)
     break if winner
   end
-  
+
   winner = 'D' unless winner || board.values.any?(EMPTY)
   winner
 end
@@ -84,23 +84,24 @@ def comp_turn(board, opp, comp, easy)
   opp_squares = board.keys.select { |sq| board[sq] == opp }
   comp_squares = board.keys.select { |sq| board[sq] == comp }
 
-  # if computer goes first, choose square #1
-  return 1 if choices.size == 9
-
-  #if computer goes second and player has chosen a corner, choose square #5
-  if choices.size == 8 && CORNERS.include?(opp_squares.first)
-    return 5 
-  end
-  
-  # splits the win states into two categories, lines that cannot lead to victory 
-  # and lines that can lead to victory - reversed since winning is prioritized for 
-  # next iteration
+  # splits the win states into two categories, lines that cannot lead to victory
+  # and lines that can lead to victory - reversed since winning is prioritized
+  # for next iteration
   partitioned = WIN_STATES.partition do |state|
     state.any? { |sq| opp_squares.include?(sq) }
   end.reverse
+  win_lines = partitioned.first
 
+  # if computer goes first, choose square #1
+  return 1 if choices.size == 9
+
+  # if computer goes second and player has chosen a corner, choose square #5
+  # if computer does not choose a corner, choose an opposing corner to their 
+  # piece
+  return CENTER if choices.size == 8 && CORNERS.include?(opp_squares.first)
+ 
   # Is there an available win line that has two O's? If so, take it for victory
-  # Is there an unavailable win line that has two X's? If so, block it to 
+  # Is there an unavailable win line that has two X's? If so, block it to
   # prevent opponent victory
   partitioned.each do |partition|
     partition.each do |line|
@@ -113,19 +114,20 @@ def comp_turn(board, opp, comp, easy)
     end
   end
 
-  # Calculates a weight for each available square based on the following criteria:
-  # square is in a corner and is also included in a potential win line that 
+  # Calculates a weight for each available square based on the following
+  # criteria:
+  # square is in a corner and also included in a win line that:
   #   already has a comp piece in it
   #   runs along the edge of the board
-  win_lines = partitioned.first
+  
   weights = choices.map do |sq|
     weight = 0
     win_lines.each do |line|
       next unless line.include?(sq)
       comp_squares.each do |cmp_sq|
-        weight += 1 if line.include?(cmp_sq) && 
-                      !line.include?(CENTER) && 
-                      CORNERS.include?(sq)
+        weight += 1 if line.include?(cmp_sq) &&
+                       !line.include?(CENTER) &&
+                       CORNERS.include?(sq)
       end
     end
     weight
@@ -136,8 +138,8 @@ def comp_turn(board, opp, comp, easy)
 end
 
 def display_score(p_score, c_score)
-  p_score = p_score.to_s.rjust(2,'0')
-  c_score = c_score.to_s.rjust(2,'0')
+  p_score = p_score.to_s.rjust(2, '0')
+  c_score = c_score.to_s.rjust(2, '0')
   puts <<-MSG
   ______________________
   |  PLAYER  | COMPUTER |
@@ -158,10 +160,10 @@ computer_score = 0
 
 loop do
   easy = nil
-  until easy != nil
+  until !easy.nil?
     prompt("Easy mode (e) or hard mode (h)? ")
     input = gets.chomp.downcase
-    
+
     case input
     when 'e' then easy = true
     when 'h' then easy = false
@@ -195,7 +197,7 @@ loop do
   when computer
     prompt("Computer wins!")
     computer_score += 1
-  else 
+  else
     prompt("Draw!")
   end
 
@@ -208,4 +210,3 @@ loop do
 end
 
 prompt("Thanks for playing Tic Tac Toe!")
-
