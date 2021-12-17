@@ -3,7 +3,6 @@ FIRST = 'X'
 SECOND = 'O'
 CORNERS = [1, 3, 7, 9]
 CENTER = 5
-
 WIN_STATES = [[1, 2, 3], [4, 5, 6], [7, 8, 9],
               [1, 4, 7], [2, 5, 8], [3, 6, 9],
               [1, 5, 9], [7, 5, 3]]
@@ -95,10 +94,8 @@ def comp_turn(board, opp, comp, easy)
   # if computer goes first, choose square #1
   return 1 if choices.size == 9
 
-  # if computer goes second and player has chosen a corner, choose square #5
-  # if computer does not choose a corner, choose an opposing corner to their 
-  # piece
-  return CENTER if choices.size == 8 && CORNERS.include?(opp_squares.first)
+  # if computer goes second, choose square #5 if it's available
+  return CENTER if choices.size == 8 && choices.include?(CENTER)
  
   # Is there an available win line that has two O's? If so, take it for victory
   # Is there an unavailable win line that has two X's? If so, block it to
@@ -119,7 +116,6 @@ def comp_turn(board, opp, comp, easy)
   # square is in a corner and also included in a win line that:
   #   already has a comp piece in it
   #   runs along the edge of the board
-  
   weights = choices.map do |sq|
     weight = 0
     win_lines.each do |line|
@@ -148,18 +144,19 @@ def display_score(p_score, c_score)
   MSG
 end
 
-# create and print board map
-board_map = initialize_board(true)
-puts ""
-puts "    BOARD MAP"
-display_board(board_map)
-
 game = 1
 player_score = 0
 computer_score = 0
 
+map = initialize_board(true)
+puts "WELCOME TO TIC TAC TOE!"
+display_board(map)
+
+# Main game loop
 loop do
   easy = nil
+
+  # Select game mode - Easy or Hard
   until !easy.nil?
     prompt("Easy mode (e) or hard mode (h)? ")
     input = gets.chomp.downcase
@@ -171,12 +168,14 @@ loop do
     end
   end
 
+  # Initialize empty board and determine turn order
   board = initialize_board
   order = [FIRST, SECOND]
   player = game.odd? ? FIRST : SECOND
   computer = game.even? ? FIRST : SECOND
   player == FIRST ? (prompt("You are X's!")) : (prompt("You are O's!"))
 
+  # Round loop
   loop do
     if player == order.first
       board[player_turn(board)] = player
@@ -190,6 +189,7 @@ loop do
 
   display_board(board) if player == order.first
 
+  # Determine winner
   case winner?(board)
   when player
     prompt("Player wins!")
