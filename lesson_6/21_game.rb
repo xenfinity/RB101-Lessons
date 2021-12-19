@@ -9,7 +9,6 @@ def prompt(message)
   puts "=> #{message}"
 end
 
-
 def cards_to_s(cards)
   cards_str = cards.map do |card| 
     "#{VALUES[card%13]} of #{SUITS[card/13]}".capitalize
@@ -20,25 +19,23 @@ end
 def display_cards(dealer, player, eog=false)
   if eog
     puts "Dealer has:\n#{cards_to_s(dealer)}"
+    puts "-----------------------------"
     puts "Value: #{card_total(dealer)}"
   else
     puts "Dealer has:\n#{cards_to_s([dealer.first])}\nUnknown card"
+    puts "------------------"
     puts "Value: #{card_total([dealer.first])}"
   end
 
   puts ""
   puts "You have:\n#{cards_to_s(player)}"
+  puts "------------------"
   puts "Value: #{card_total(player)}"
   puts ""
-
 end
 
 def valid_input?(input)
-  valid = input == 'h' || input == 's'
-  unless valid
-    puts "Invalid input, please enter 'h' or 's'"
-  end
-  valid
+  input == 'h' || input == 's'
 end
 
 def card_total(cards)
@@ -57,61 +54,67 @@ def card_total(cards)
     sum_aces -= 10
   end
 
-  score += sum_aces
-  score
+  score + sum_aces
 end
 
 def initialize_deck
   deck = []
-  0.upto(52) {|card| deck << card}
+  0.upto(51) {|card| deck << card}
   deck.shuffle
 end
 
-def game_over(dealer, player, stay)
-  if !stay
+def game_over(dealer, player)
+  if player > 21
     puts "You busted, dealer wins :("
   elsif dealer > 21
     puts "Dealer busted, you win!"
   else
-    dealer > player ? (puts "Dealer wins :(") : (puts "You win!")
+    if dealer > player
+      puts "Dealer wins :("
+    elsif player > dealer
+      puts "You win!"
+    else
+      puts "Draw!"
+    end
   end
 end
 
 loop do
   deck = initialize_deck
-  player_score = 0
-  dealer_score = 0
   player_cards = []
   dealer_cards = []
   stay = false
+  input = nil
 
   2.times { player_cards << deck.shift }
   2.times { dealer_cards << deck.shift }
 
+  # Player turn
   until stay || card_total(player_cards) > 21
-    # Display initial cards dealt
     display_cards(dealer_cards, player_cards)
-    # Player Turn
-    prompt("Would you like to hit or stay? (h/s)")
-    input = gets.chomp.downcase
-    next unless valid_input?(input)
 
-    input == 'h' ? (player_cards << deck.shift) : stay = true
+    loop do
+      prompt("Would you like to hit or stay? (h/s)")
+      input = gets.chomp.downcase
+      valid_input?(input) ? break : (puts "Invalid input")
+    end
+
+    input == 'h' ? player_cards << deck.shift : stay = true
   end
 
-  until card_total(dealer_cards) > 17 && stay
-    # Dealer Turn
+  # Dealer turn
+  while stay && card_total(dealer_cards) <= 17
     dealer_cards << deck.shift
   end
 
   d_value = card_total(dealer_cards)
   p_value = card_total(player_cards)
   display_cards(dealer_cards, player_cards, true)
-  game_over(d_value, p_value, stay)
+  game_over(d_value, p_value)
 
   prompt("Would you like to play again? (y/n)")
   input = gets.chomp
-  break unless input.downcase == 'y'
+  break unless input.downcase.start_with?('y')
 end
 
 
