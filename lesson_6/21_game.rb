@@ -17,7 +17,6 @@ PROMPT
 
 player_score = 0
 dealer_score = 0
-input = nil
 
 # Printing method used to indent messages
 def prompt(message)
@@ -40,7 +39,7 @@ def game_mode
   end
 end
 
-# Converts the cards in a hand to their string representation 
+# Converts the cards in a hand to their string representation
 # returns the string
 def hand_str(cards)
   cards_str = cards.map do |card|
@@ -49,7 +48,7 @@ def hand_str(cards)
   cards_str.join("\n")
 end
 
-# Displays the current state of the game 
+# Displays the current state of the game
 def display_cards(player, dealer, p_total, d_total, eog=false)
   d_cards = eog ? hand_str(dealer) : "#{hand_str([dealer.first])}\nUnknown card"
 
@@ -139,7 +138,7 @@ def display_winner(p_total, d_total)
   end
 end
 
-# Displays the running score 
+# Displays the running score
 def display_score(player_score, dealer_score)
   puts LINE_BREAK
   puts "Player: #{player_score}"
@@ -182,7 +181,7 @@ loop do
   display_cards(player_cards, dealer_cards, player_total, dealer_total, true)
 
   winner = winner?(player_total, dealer_total)
-  
+
   player_score += 1 if winner == PLAYER_WIN
   dealer_score += 1 if winner == DEALER_WIN
 
