@@ -15,6 +15,16 @@ Please select a game mode:
 4 - Fifty-One
 PROMPT
 
+player_score = 0
+dealer_score = 0
+input = nil
+
+# Printing method used to indent messages
+def prompt(message)
+  puts "=> #{message}"
+end
+
+# Returns game mode selected by the player
 def game_mode
   input = nil
   loop do
@@ -30,10 +40,8 @@ def game_mode
   end
 end
 
-def prompt(message)
-  puts "=> #{message}"
-end
-
+# Converts the cards in a hand to their string representation 
+# returns the string
 def hand_str(cards)
   cards_str = cards.map do |card|
     "#{VALUES[card % 13]} of #{SUITS[card / 13]}".capitalize
@@ -41,6 +49,7 @@ def hand_str(cards)
   cards_str.join("\n")
 end
 
+# Displays the current state of the game 
 def display_cards(player, dealer, p_total, d_total, eog=false)
   d_cards = eog ? hand_str(dealer) : "#{hand_str([dealer.first])}\nUnknown card"
 
@@ -54,10 +63,7 @@ def display_cards(player, dealer, p_total, d_total, eog=false)
   puts ""
 end
 
-def valid_input?(input)
-  input == 'h' || input == 's'
-end
-
+# Returns the total value of the hand that's passed in
 def hand_total(cards)
   cards = cards.map { |card| card % 13 }.sort
   aces, cards = cards.partition { |card| card == 12 }
@@ -77,6 +83,12 @@ def hand_total(cards)
   score + sum_aces
 end
 
+# Validates a 'hit' or 'stay' input from the player
+def valid_input?(input)
+  input == 'h' || input == 's'
+end
+
+# Prompts for, validates and returns player's choice
 def player_choice
   input = nil
   loop do
@@ -87,47 +99,59 @@ def player_choice
   input
 end
 
+# Creates a new deck in a random order
 def initialize_deck
   deck = []
   0.upto(51) { |card| deck << card }
   deck.shuffle
 end
 
+# Deals a card from the deck into the hand passed in
 def deal_card(deck, hand)
   hand << deck.shift
 end
 
-def game_over(p_total, d_total)
+# Determines the winner of the game
+def winner?(p_total, d_total)
   if p_total > CEILING
-    puts "You busted, dealer wins :("
     DEALER_WIN
   elsif d_total > CEILING
-    puts "Dealer busted, you win!"
     PLAYER_WIN
   elsif d_total > p_total
-    puts "Dealer wins :("
     DEALER_WIN
   elsif p_total > d_total
-    puts "You win!"
     PLAYER_WIN
+  end
+end
+
+# Displays the winner and whether or not the loser busted
+def display_winner(p_total, d_total)
+  if p_total > CEILING
+    puts "You busted, dealer wins :("
+  elsif d_total > CEILING
+    puts "Dealer busted, you win!"
+  elsif d_total > p_total
+    puts "Dealer wins :("
+  elsif p_total > d_total
+    puts "You win!"
   else
     puts "Draw!"
   end
 end
 
+# Displays the running score 
 def display_score(player_score, dealer_score)
   puts LINE_BREAK
   puts "Player: #{player_score}"
   puts "Dealer: #{dealer_score}"
+  puts LINE_BREAK
 end
 
-player_score = 0
-dealer_score = 0
-input = nil
-
+# Display welcome message and determine game mode
 prompt(WELCOME)
 CEILING = game_mode
 
+# Main game loop
 loop do
   deck = initialize_deck
   player_cards = []
@@ -155,13 +179,14 @@ loop do
   end
 
   dealer_total = hand_total(dealer_cards)
-
   display_cards(player_cards, dealer_cards, player_total, dealer_total, true)
-  winner = game_over(player_total, dealer_total)
 
+  winner = winner?(player_total, dealer_total)
+  
   player_score += 1 if winner == PLAYER_WIN
   dealer_score += 1 if winner == DEALER_WIN
 
+  display_winner(player_total, dealer_total)
   display_score(player_score, dealer_score)
 
   break if player_score >= 5 || dealer_score >= 5
@@ -170,6 +195,7 @@ loop do
   break unless input.downcase.start_with?('y')
 end
 
+# Display final score once game has ended
 if player_score > dealer_score
   prompt("Player wins the game! #{player_score}-#{dealer_score}")
 elsif dealer_score > player_score
