@@ -5,19 +5,17 @@ SUITS = ['clubs', 'diamonds', 'hearts', 'spades']
 LINE_BREAK = "------------------"
 PLAYER_WIN = "P"
 DEALER_WIN = "D"
+WELCOME = <<-PROMPT
+Welcome to Whatever-One!
+
+Please select a game mode:
+1 - Twenty-One
+2 - Thirty-One
+3 - Forty-One
+4 - Fifty-One
+PROMPT
 
 def game_mode
-  message = <<-PROMPT
-  Welcome to Whatever-One!
-
-  Please select a game mode:
-  1 - Twenty-One
-  2 - Thirty-One
-  3 - Forty-One
-  4 - Fifty-One
-  PROMPT
-  prompt(message)
-
   input = nil
   loop do
     input = gets.chomp
@@ -36,7 +34,7 @@ def prompt(message)
   puts "=> #{message}"
 end
 
-def cards_to_s(cards)
+def hand_str(cards)
   cards_str = cards.map do |card|
     "#{VALUES[card % 13]} of #{SUITS[card / 13]}".capitalize
   end
@@ -44,17 +42,13 @@ def cards_to_s(cards)
 end
 
 def display_cards(player, dealer, p_total, d_total, eog=false)
-  if eog
-    d_cards = cards_to_s(dealer)
-  else 
-    d_cards = "#{cards_to_s([dealer.first])}\nUnknown card"
-  end
+  d_cards = eog ? hand_str(dealer) : "#{hand_str([dealer.first])}\nUnknown card"
 
   puts "Dealer has:\n#{d_cards}"
   puts LINE_BREAK
   puts "Value: #{d_total}"
   puts ""
-  puts "You have:\n#{cards_to_s(player)}"
+  puts "You have:\n#{hand_str(player)}"
   puts LINE_BREAK
   puts "Value: #{p_total}"
   puts ""
@@ -106,13 +100,13 @@ end
 def game_over(p_total, d_total)
   if p_total > CEILING
     puts "You busted, dealer wins :("
-    DEALER_WIN 
+    DEALER_WIN
   elsif d_total > CEILING
     puts "Dealer busted, you win!"
     PLAYER_WIN
   elsif d_total > p_total
     puts "Dealer wins :("
-    DEALER_WIN 
+    DEALER_WIN
   elsif p_total > d_total
     puts "You win!"
     PLAYER_WIN
@@ -130,6 +124,8 @@ end
 player_score = 0
 dealer_score = 0
 input = nil
+
+prompt(WELCOME)
 CEILING = game_mode
 
 loop do
@@ -137,7 +133,7 @@ loop do
   player_cards = []
   dealer_cards = []
   stay = false
-  
+
   2.times { deal_card(deck, player_cards) }
   2.times { deal_card(deck, dealer_cards) }
 
@@ -148,24 +144,24 @@ loop do
   until stay || player_total > CEILING
     display_cards(player_cards, dealer_cards, player_total, dealer_total)
     choice = player_choice
-  
+
     choice == 'h' ? deal_card(deck, player_cards) : stay = true
     player_total = hand_total(player_cards)
   end
-  
+
   # Dealer turn
   while stay && hand_total(dealer_cards) <= CEILING - 4
     deal_card(deck, dealer_cards)
   end
 
   dealer_total = hand_total(dealer_cards)
-  
+
   display_cards(player_cards, dealer_cards, player_total, dealer_total, true)
   winner = game_over(player_total, dealer_total)
-  
+
   player_score += 1 if winner == PLAYER_WIN
-  dealer_score += 1 if winner == DEALER_WIN 
-    
+  dealer_score += 1 if winner == DEALER_WIN
+
   display_score(player_score, dealer_score)
 
   break if player_score >= 5 || dealer_score >= 5
@@ -175,10 +171,9 @@ loop do
 end
 
 if player_score > dealer_score
-  prompt("Player wins the game! #{player_score}-#{dealer_score}") 
+  prompt("Player wins the game! #{player_score}-#{dealer_score}")
 elsif dealer_score > player_score
-  prompt("Dealer wins the game! #{dealer_score}-#{player_score}") 
+  prompt("Dealer wins the game! #{dealer_score}-#{player_score}")
 else
-  prompt("Draw! #{player_score}-#{dealer_score}")
+  prompt("The game is a draw! #{player_score}-#{dealer_score}")
 end
-
