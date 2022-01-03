@@ -34,7 +34,7 @@ end
 def initialize_board(map=false)
   board = Hash.new
   1.upto(9) do |i|
-    board[i] = map ? i : EMPTY     
+    board[i] = map ? i : EMPTY
   end
   board
 end
@@ -97,8 +97,8 @@ def comp_turn(board, opp, comp, easy)
   # if computer goes second, choose square #5 if it's available
   return CENTER if choices.size == 8 && choices.include?(CENTER)
  
-  # Is there an available win line that has two O's? If so, take it for victory
-  # Is there an unavailable win line that has two X's? If so, block it to
+  # Is there an available win line that has two computer pieces? If so, take it for victory
+  # Is there an unavailable win line that has two opponent pieces? If so, block it to
   # prevent opponent victory
   partitioned.each do |partition|
     partition.each do |line|
@@ -133,6 +133,7 @@ def comp_turn(board, opp, comp, easy)
   choices[max_index]
 end
 
+# Displays score
 def display_score(p_score, c_score)
   p_score = p_score.to_s.rjust(2, '0')
   c_score = c_score.to_s.rjust(2, '0')
