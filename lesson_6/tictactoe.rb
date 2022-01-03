@@ -158,7 +158,7 @@ loop do
   easy = nil
 
   # Select game mode - Easy or Hard
-  until !easy.nil?
+  while easy.nil?
     prompt("Easy mode (e) or hard mode (h)? ")
     input = gets.chomp.downcase
 
