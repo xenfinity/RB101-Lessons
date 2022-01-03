@@ -41,33 +41,33 @@ end
 
 # Converts the cards in a hand to their string representation
 # returns the string
-def hand_str(cards)
-  cards_str = cards.map do |card|
+def hand_str(hand)
+  hand_s = hand.map do |card|
     "#{VALUES[card % 13]} of #{SUITS[card / 13]}".capitalize
   end
-  cards_str.join("\n")
+  hand_s.join("\n")
 end
 
 # Displays the current state of the game
-def display_cards(player, dealer, p_total, d_total, eog=false)
-  d_cards = eog ? hand_str(dealer) : "#{hand_str([dealer.first])}\nUnknown card"
+def display_cards(p_hand, d_hand, p_total, d_total, eog=false)
+  d_hand = eog ? hand_str(d_hand) : "#{hand_str([d_hand.first])}\nUnknown card"
 
-  puts "Dealer has:\n#{d_cards}"
+  puts "Dealer has:\n#{d_hand}"
   puts LINE_BREAK
   puts "Value: #{d_total}"
   puts ""
-  puts "You have:\n#{hand_str(player)}"
+  puts "You have:\n#{hand_str(p_hand)}"
   puts LINE_BREAK
   puts "Value: #{p_total}"
   puts ""
 end
 
 # Returns the total value of the hand that's passed in
-def hand_total(cards)
-  cards = cards.map { |card| card % 13 }.sort
-  aces, cards = cards.partition { |card| card == 12 }
+def hand_total(hand)
+  hand = hand.map { |card| card % 13 }.sort
+  aces, hand = hand.partition { |card| card == 12 }
 
-  score = cards.reduce(0) do |sum, card|
+  score = hand.reduce(0) do |sum, card|
     value = card % 13
     sum += value < 9 ? value + 2 : 10
   end
@@ -153,32 +153,32 @@ CEILING = game_mode
 # Main game loop
 loop do
   deck = initialize_deck
-  player_cards = []
-  dealer_cards = []
+  player_hand = []
+  dealer_hand = []
   stay = false
 
-  2.times { deal_card(deck, player_cards) }
-  2.times { deal_card(deck, dealer_cards) }
+  2.times { deal_card(deck, player_hand) }
+  2.times { deal_card(deck, dealer_hand) }
 
-  player_total = hand_total(player_cards)
-  dealer_total = hand_total([dealer_cards.first])
+  player_total = hand_total(player_hand)
+  dealer_total = hand_total([dealer_hand.first])
 
   # Player turn
   until stay || player_total > CEILING
-    display_cards(player_cards, dealer_cards, player_total, dealer_total)
+    display_cards(player_hand, dealer_hand, player_total, dealer_total)
     choice = player_choice
 
-    choice == 'h' ? deal_card(deck, player_cards) : stay = true
-    player_total = hand_total(player_cards)
+    choice == 'h' ? deal_card(deck, player_hand) : stay = true
+    player_total = hand_total(player_hand)
   end
 
   # Dealer turn
-  while stay && hand_total(dealer_cards) <= CEILING - 4
-    deal_card(deck, dealer_cards)
+  while stay && hand_total(dealer_hand) <= CEILING - 4
+    deal_card(deck, dealer_hand)
   end
 
-  dealer_total = hand_total(dealer_cards)
-  display_cards(player_cards, dealer_cards, player_total, dealer_total, true)
+  dealer_total = hand_total(dealer_hand)
+  display_cards(player_hand, dealer_hand, player_total, dealer_total, true)
 
   winner = winner?(player_total, dealer_total)
 
