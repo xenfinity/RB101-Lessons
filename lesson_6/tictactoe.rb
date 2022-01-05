@@ -18,17 +18,20 @@ def joinor(choices, delim=', ', tail='or')
 end
 
 def display_board(board)
-  puts ""
-  puts "     |     |"
-  puts "  #{board[1]}  |  #{board[2]}  |  #{board[3]}"
-  puts "_____|_____|_____"
-  puts "     |     |"
-  puts "  #{board[4]}  |  #{board[5]}  |  #{board[6]}"
-  puts "_____|_____|_____"
-  puts "     |     |"
-  puts "  #{board[7]}  |  #{board[8]}  |  #{board[9]}"
-  puts "     |     |"
-  puts ""
+  board_hd = <<-MSG
+  
+       |     |
+    #{board[1]}  |  #{board[2]}  |  #{board[3]}
+  _____|_____|_____
+       |     |
+    #{board[4]}  |  #{board[5]}  |  #{board[6]}
+  _____|_____|_____
+       |     |
+    #{board[7]}  |  #{board[8]}  |  #{board[9]}
+       |     |
+  
+  MSG
+  puts board_hd
 end
 
 def initialize_board(map=false)
@@ -76,64 +79,84 @@ def player_turn(board)
   end
 end
 
-def comp_turn(board, opp, comp, easy)
-  choices = find_choices(board)
-  return choices.sample if easy
+def comp_goes_first?(choices)
+  choices.size == 9
+end
 
+def second_and_center?(choices)
+  choices.size == 8 && choices.include?(CENTER)
+end
+
+def critical_square?(board, lines, mark)
+  lines.each do |line|
+    state = line.map { |sq| board[sq] }
+    next unless state.any?(EMPTY)
+    return line[state.index(EMPTY)] if state.count(mark) == 2
+  end
+  nil
+end
+
+def split_win_states(board, opp)
   opp_squares = board.keys.select { |sq| board[sq] == opp }
-  comp_squares = board.keys.select { |sq| board[sq] == comp }
-
-  # splits the win states into two categories, lines that cannot lead to victory
-  # and lines that can lead to victory - reversed since winning is prioritized
-  # for next iteration
-  partitioned = WIN_STATES.partition do |state|
+  WIN_STATES.partition do |state|
     state.any? { |sq| opp_squares.include?(sq) }
   end.reverse
-  win_lines = partitioned.first
+end
 
-  # if computer goes first, choose square #1
-  return 1 if choices.size == 9
+def desireable_square?(line, cmp_sq, sq)
+  line.include?(cmp_sq) &&
+    !line.include?(CENTER) &&
+    CORNERS.include?(sq)
+end
 
-  # if computer goes second, choose square #5 if it's available
-  return CENTER if choices.size == 8 && choices.include?(CENTER)
- 
-  # Is there an available win line that has two computer pieces? If so, take it for victory
-  # Is there an unavailable win line that has two opponent pieces? If so, block it to
-  # prevent opponent victory
-  partitioned.each do |partition|
-    partition.each do |line|
-      state = line.map { |sq| board[sq] }
+def state(board, opp, comp)
+  choices = find_choices(board)
+  lines = split_win_states(board, opp)
+  win_line = critical_square?(board, lines.first, comp)
+  block_line = critical_square?(board, lines.last, opp)
 
-      next unless state.any?(EMPTY)
-      if state.count(opp) == 2 || state.count(comp) == 2
-        return line[state.index(EMPTY)]
-      end
-    end
-  end
+  [choices, lines, win_line, block_line]
+end
 
-  # Calculates a weight for each available square based on the following
-  # criteria:
-  # square is in a corner and also included in a win line that:
-  #   already has a comp piece in it
-  #   runs along the edge of the board
-  weights = choices.map do |sq|
+def find_weights(choices, win_lines, comp_squares)
+  choices.map do |sq|
     weight = 0
     win_lines.each do |line|
       next unless line.include?(sq)
       comp_squares.each do |cmp_sq|
-        weight += 1 if line.include?(cmp_sq) &&
-                       !line.include?(CENTER) &&
-                       CORNERS.include?(sq)
+        weight += 1 if desireable_square?(line, cmp_sq, sq)
       end
     end
     weight
   end
+end
+
+def weighted_line(board, comp, choices, win_lines)
+  comp_squares = board.keys.select { |sq| board[sq] == comp }
+  weights = find_weights(choices, win_lines, comp_squares)
 
   max_index = weights.index(weights.max)
   choices[max_index]
 end
 
-# Displays score
+def comp_turn(board, opp, comp, easy)
+  choices, lines, win_line, block_line = state(board, opp, comp)
+
+  if easy
+    choices.sample
+  elsif comp_goes_first?(choices)
+    1
+  elsif second_and_center?(choices)
+    CENTER
+  elsif win_line
+    win_line
+  elsif block_line
+    block_line
+  else
+    weighted_line(board, comp, choices, lines.first)
+  end
+end
+
 def display_score(p_score, c_score)
   p_score = p_score.to_s.rjust(2, '0')
   c_score = c_score.to_s.rjust(2, '0')
@@ -145,9 +168,85 @@ def display_score(p_score, c_score)
   MSG
 end
 
+def yes_or_no?(input)
+  %w(y n yes no).include?(input.downcase)
+end
+
+def easy_or_hard?(input)
+  %w(e h easy hard).include?(input.downcase)
+end
+
+def display(mark, map, board, score)
+  system 'clear'
+  prompt(mark)
+  display_board(map)
+  display_board(board)
+  display_score(score.first, score.last)
+end
+
+def game_mode
+  input = nil
+  loop do
+    prompt("Easy mode (e) or hard mode (h)? ")
+    input = gets.chomp.downcase
+
+    break if easy_or_hard?(input)
+    prompt("Invalid input, please enter 'e' or 'h'")
+  end
+  input.start_with?('e') ? true : false
+end
+
+def determine_turn_order(game)
+  order = [FIRST, SECOND]
+  player = game.odd? ? FIRST : SECOND
+  computer = game.even? ? FIRST : SECOND
+  mark = player == FIRST ? "You are X's!" : "You are O's!"
+
+  [order, player, computer, mark]
+end
+
+def play_turn(board, order, player, computer, easy)
+  if player == order.first
+    board[player_turn(board)] = player
+  else
+    board[comp_turn(board, player, computer, easy)] = computer
+  end
+end
+
+def update_score(winner, player, computer, score)
+  case winner
+  when player
+    score[0] += 1
+  when computer
+    score[1] += 1
+  end
+  score
+end
+
+def display_winner(winner, player, computer)
+  case winner
+  when player
+    prompt("Player wins!")
+  when computer
+    prompt("Computer wins!")
+  else
+    prompt("Draw!")
+  end
+end
+
+def play_again?
+  input = nil
+  loop do
+    prompt("Would you like to play again? (y/n)")
+    input = gets.chomp
+    break if yes_or_no?(input)
+    prompt("Invalid input, please enter 'y' or 'n'")
+  end
+  input.start_with?('y') ? true : false
+end
+
 game = 1
-player_score = 0
-computer_score = 0
+score = [0, 0]
 
 map = initialize_board(true)
 puts "WELCOME TO TIC TAC TOE!"
@@ -155,59 +254,25 @@ display_board(map)
 
 # Main game loop
 loop do
-  easy = nil
-
-  # Select game mode - Easy or Hard
-  while easy.nil?
-    prompt("Easy mode (e) or hard mode (h)? ")
-    input = gets.chomp.downcase
-
-    case input
-    when 'e' then easy = true
-    when 'h' then easy = false
-    else prompt("Invalid input, please choose 'e' or 'h'")
-    end
-  end
-
-  # Initialize empty board and determine turn order
+  easy = game_mode
   board = initialize_board
-  order = [FIRST, SECOND]
-  player = game.odd? ? FIRST : SECOND
-  computer = game.even? ? FIRST : SECOND
-  player == FIRST ? (prompt("You are X's!")) : (prompt("You are O's!"))
+  order, player, computer, mark = determine_turn_order(game)
 
   # Round loop
   loop do
-    if player == order.first
-      board[player_turn(board)] = player
-    else
-      board[comp_turn(board, player, computer, easy)] = computer
-      display_board(board)
-    end
+    display(mark, map, board, score)
+    play_turn(board, order, player, computer, easy)
     break if winner?(board)
     order.rotate!
   end
 
-  display_board(board) if player == order.first
-
-  # Determine winner
-  case winner?(board)
-  when player
-    prompt("Player wins!")
-    player_score += 1
-  when computer
-    prompt("Computer wins!")
-    computer_score += 1
-  else
-    prompt("Draw!")
-  end
+  winner = winner?(board)
+  update_score(winner, player, computer, score)
+  display(mark, map, board, score)
+  display_winner(winner, player, computer)
 
   game += 1
-  display_score(player_score, computer_score)
-
-  prompt("Would you like to play again? (y/n)")
-  input = gets.chomp
-  break unless input.downcase == 'y'
+  break unless play_again?
 end
 
 prompt("Thanks for playing Tic Tac Toe!")
