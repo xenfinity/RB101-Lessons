@@ -15,8 +15,10 @@ Please select a game mode:
 4 - Fifty-One
 PROMPT
 
-player_score = 0
-dealer_score = 0
+scores = {
+  Player: 0,
+  Dealer: 0
+}
 
 # Printing method used to indent messages
 def prompt(message)
@@ -49,17 +51,27 @@ def hand_str(hand)
 end
 
 # Displays the current state of the game
-def display_cards(p_hand, d_hand, p_total, d_total, eog=false)
+def display_cards(p_hand, d_hand, totals, eog=false)
   d_hand = eog ? hand_str(d_hand) : "#{hand_str([d_hand.first])}\nUnknown card"
 
   puts "Dealer has:\n#{d_hand}"
   puts LINE_BREAK
-  puts "Value: #{d_total}"
+  puts "Value: #{totals[:Dealer]}"
   puts ""
   puts "You have:\n#{hand_str(p_hand)}"
   puts LINE_BREAK
-  puts "Value: #{p_total}"
+  puts "Value: #{totals[:Player]}"
   puts ""
+end
+
+def sum_of_aces(score, aces)
+  balance = CEILING - score
+  sum_aces = aces.size * 11
+  (aces.size).times do
+    break if sum_aces <= balance
+    sum_aces -= 10
+  end
+  sum_aces
 end
 
 # Returns the total value of the hand that's passed in
@@ -69,22 +81,20 @@ def hand_total(hand)
 
   score = hand.reduce(0) do |sum, card|
     value = card % 13
-    sum += value < 9 ? value + 2 : 10
+    sum + (value < 9 ? value + 2 : 10)
   end
 
-  balance = CEILING - score
-  sum_aces = aces.size * 11
-  (aces.size).times do
-    break if sum_aces <= balance
-    sum_aces -= 10
-  end
-
-  score + sum_aces
+  ace_score = sum_of_aces(score, aces)
+  score + ace_score
 end
 
 # Validates a 'hit' or 'stay' input from the player
-def valid_input?(input)
-  input == 'h' || input == 's'
+def hit_or_stay?(input)
+  %w(h s hit stay).include?(input)
+end
+
+def yes_or_no?(input)
+  %w(y n yes no).include?(input)
 end
 
 # Prompts for, validates and returns player's choice
@@ -93,7 +103,7 @@ def player_choice
   loop do
     prompt("Would you like to hit or stay? (h/s)")
     input = gets.chomp.downcase
-    valid_input?(input) ? break : (puts "Invalid input")
+    hit_or_stay?(input) ? break : (puts "Invalid input")
   end
   input
 end
@@ -105,47 +115,98 @@ def initialize_deck
   deck.shuffle
 end
 
+def initialize_hand(deck, hand, dealer=false)
+  2.times { deal_card(deck, hand) }
+  dealer ? hand_total([hand.first]) : hand_total(hand)
+end
+
 # Deals a card from the deck into the hand passed in
 def deal_card(deck, hand)
   hand << deck.shift
 end
 
+def player_turn(deck, player_hand, dealer_hand, totals, scores)
+  until totals[:Player] > CEILING
+    display(player_hand, dealer_hand, totals, scores)
+    choice = player_choice
+
+    choice.start_with?('h') ? deal_card(deck, player_hand) : break
+    totals[:Player] = hand_total(player_hand)
+  end
+end
+
+def dealer_turn(deck, dealer_hand)
+  while hand_total(dealer_hand) <= CEILING - 4
+    deal_card(deck, dealer_hand)
+  end
+end
+
 # Determines the winner of the game
-def winner?(p_total, d_total)
-  if p_total > CEILING
+def winner?(totals)
+  if totals[:Player] > CEILING
     DEALER_WIN
-  elsif d_total > CEILING
+  elsif totals[:Dealer] > CEILING
     PLAYER_WIN
-  elsif d_total > p_total
+  elsif totals[:Dealer] > totals[:Player]
     DEALER_WIN
-  elsif p_total > d_total
+  elsif totals[:Player] > totals[:Dealer]
     PLAYER_WIN
   end
 end
 
 # Displays the winner and whether or not the loser busted
-def display_winner(p_total, d_total)
-  if p_total > CEILING
+def display_winner(totals)
+  if totals[:Player] > CEILING
     puts "You busted, dealer wins :("
-  elsif d_total > CEILING
+  elsif totals[:Dealer] > CEILING
     puts "Dealer busted, you win!"
-  elsif d_total > p_total
+  elsif totals[:Dealer] > totals[:Player]
     puts "Dealer wins :("
-  elsif p_total > d_total
+  elsif totals[:Player] > totals[:Dealer]
     puts "You win!"
   else
     puts "Draw!"
   end
 end
 
+def update_score(winner, scores)
+  winner == PLAYER_WIN ? scores[:Player] += 1 : scores[:Dealer] += 1
+end
+
 # Displays the running score
-def display_score(player_score, dealer_score)
+def display_score(scores)
   puts LINE_BREAK
-  puts "Player: #{player_score}"
-  puts "Dealer: #{dealer_score}"
+  puts "Player: #{scores[:Player]}"
+  puts "Dealer: #{scores[:Dealer]}"
   puts LINE_BREAK
 end
 
+def play_again?
+  input = nil
+  loop do
+    prompt("Would you like to play again? (y/n)")
+    input = gets.chomp
+    break if yes_or_no?(input)
+  end
+  input.start_with?('y') ? true : false
+end
+
+def game_over(scores)
+  if scores[:Player] > scores[:Dealer]
+    prompt("Player wins the game! #{scores[:Player]}-#{scores[:Dealer]}")
+  elsif scores[:Dealer] > scores[:Player]
+    prompt("Dealer wins the game! #{scores[:Dealer]}-#{scores[:Player]}")
+  else
+    prompt("The game is a draw! #{scores[:Player]}-#{scores[:Dealer]}")
+  end
+end
+
+def display(p_hand, d_hand, totals, scores, eog=false)
+  system 'clear'
+  display_cards(p_hand, d_hand, totals, eog)
+  display_score(scores)
+  display_winner(totals) if eog
+end
 # Display welcome message and determine game mode
 prompt(WELCOME)
 CEILING = game_mode
@@ -155,50 +216,22 @@ loop do
   deck = initialize_deck
   player_hand = []
   dealer_hand = []
-  stay = false
 
-  2.times { deal_card(deck, player_hand) }
-  2.times { deal_card(deck, dealer_hand) }
+  player_total = initialize_hand(deck, player_hand)
+  dealer_total = initialize_hand(deck, dealer_hand, true)
+  totals = { Player: player_total, Dealer: dealer_total }
 
-  player_total = hand_total(player_hand)
-  dealer_total = hand_total([dealer_hand.first])
+  player_turn(deck, player_hand, dealer_hand, totals, scores)
+  dealer_turn(deck, dealer_hand, totals) if totals[:Player] <= CEILING
+  totals[:Dealer] = hand_total(dealer_hand)
 
-  # Player turn
-  until stay || player_total > CEILING
-    display_cards(player_hand, dealer_hand, player_total, dealer_total)
-    choice = player_choice
+  winner = winner?(totals)
+  update_score(winner, scores) if winner
 
-    choice == 'h' ? deal_card(deck, player_hand) : stay = true
-    player_total = hand_total(player_hand)
-  end
+  display(player_hand, dealer_hand, totals, scores, true)
 
-  # Dealer turn
-  while stay && hand_total(dealer_hand) <= CEILING - 4
-    deal_card(deck, dealer_hand)
-  end
-
-  dealer_total = hand_total(dealer_hand)
-  display_cards(player_hand, dealer_hand, player_total, dealer_total, true)
-
-  winner = winner?(player_total, dealer_total)
-
-  player_score += 1 if winner == PLAYER_WIN
-  dealer_score += 1 if winner == DEALER_WIN
-
-  display_winner(player_total, dealer_total)
-  display_score(player_score, dealer_score)
-
-  break if player_score >= 5 || dealer_score >= 5
-  prompt("Would you like to play again? (y/n)")
-  input = gets.chomp
-  break unless input.downcase.start_with?('y')
+  break if scores[:Player] >= 5 || scores[:Dealer] >= 5
+  break unless play_again?
 end
 
-# Display final score once game has ended
-if player_score > dealer_score
-  prompt("Player wins the game! #{player_score}-#{dealer_score}")
-elsif dealer_score > player_score
-  prompt("Dealer wins the game! #{dealer_score}-#{player_score}")
-else
-  prompt("The game is a draw! #{player_score}-#{dealer_score}")
-end
+game_over(scores)
